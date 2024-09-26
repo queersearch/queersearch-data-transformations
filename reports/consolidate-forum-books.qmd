@@ -1,0 +1,233 @@
+---
+title: "consolidate removena und current books"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+
+# goal -------------------------------------------------------------------
+# Problem: In RemoveNA habe ich die 
+# https://github.com/queersearch/ptf-setup/issues/16
+
+library(config)
+library(tidyverse)
+library(testdat)
+
+
+# setup ------------------------------------------------------------------
+
+config_file <- "static/config.yaml"
+config <- config::get(file = config_file, "removena_db")
+
+con <- DBI::dbConnect(RMariaDB::MariaDB(),
+  host = config$host,
+  user = config$user,
+  password = config$password,
+  port = config$port,
+  dbname = config$dbname
+)
+
+
+# import data sources ----------------------------------------------------
+
+
+# 1) uuid-forum_id: in removena i didn't save that
+uuid_forum_id_file <- "data/input/books_id.csv"
+uuid_forum_id <- read_csv(here::here(uuid_forum_id_file)) |>
+  rename(citavi_id = sku)
+
+# 2) access removena db = local MySQL DB ---------------------------------
+
+entities_per_type <- tbl(con, "entities_per_type") |> collect()
+
+books_authors <- tbl(con, "books_authors") |> select(id, book_id) |> collect() |> 
+  mutate(id = trimws(id)) |> 
+  # fix some inconsistencies
+  mutate(
+    id = case_when(
+      # patricia highsmith
+      book_id %in% c(1553, 1632, 2872) ~ "book_author_1013",
+      book_id %in% c(2872) ~ "book_author_1553",
+      TRUE ~ id
+      )
+    )
+
+# 3) current books export  -----------------------------------------------
+
+current_books_file <- "data/output/books.csv"
+current_books_raw <- read_csv(here::here(current_books_file)) 
+
+
+# 4) Persons with Wikidata QID --------------------------------------------
+
+fg_persons <- read_csv("data/input/factgrid/persons.csv") 
+fg_items <- read_csv("data/input/factgrid/all-items.csv")
+
+persons <- fg_persons |> 
+  left_join(books_authors, by = join_by(forum_id==id)) |> filter(!is.na(book_id))
+
+
+```
+## Join: Bücher mit `forum_id`
+
+Joins: 
+
+1. zum einen mit den `uuid` aus Citavi
+2. mit den Factgrid bzw Wikidata-QIDs 
+
+```{r}
+current_books_ids <- current_books_raw |> 
+  left_join(uuid_forum_id, by = join_by(ID == citavi_id)) |> 
+  select(ID, Title, author, forum_id = book_id) |> 
+  mutate(forum_id = 
+           case_when(
+             !is.na(forum_id) ~ paste0("book_", forum_id),
+             is.na(forum_id) ~ NA_character_
+            )
+           ) |> 
+  left_join(fg_items |> 
+              distinct(fg_item, fg_itemLabel, forum_id), by = join_by(forum_id))
+```
+
+Wie viele haben kein Gegenstück? Wann sind die hinzugefügt worden? Erst zuletzt, also nach dem RemoveNA Projekt?
+
+- alle nach dem März 2021: schon eher jünger - aber heißt das, dass ich damals einen veralteten Dump bekommen hatte... who knows.
+
+```{r}
+current_books_not_in_removena <- current_books_ids |> 
+  filter(is.na(forum_id)) |> 
+  select(ID, Title, author) |> 
+  left_join(current_books_raw |> select(ID, CreatedOn), by = join_by(ID))
+
+current_books_not_in_removena |> DT::datatable(filter = "top")
+```
+
+## Join: Bücher mit Autor:innen
+
+```{r}
+current_books_with_author_ids <- current_books_raw |> 
+  # add citavi uuids
+  left_join(uuid_forum_id, by = join_by(ID == citavi_id)) |> 
+  select(ID, Title, author, book_id) |> 
+  # get author_ids
+  left_join(books_authors, by = join_by(book_id)) |> 
+  rename(forum_id = id) |> 
+  mutate(forum_id = ifelse(forum_id== "NA", NA_character_, forum_id)) |> 
+  # add factgrid, widikdata, gnd
+  left_join(fg_items, by = join_by(forum_id)) |> 
+  # add some analysis cols
+  mutate(
+    has_forum_id = ifelse(!is.na(forum_id), T, F),
+    has_factgrid = ifelse(!is.na(fg_item), T, F),
+    has_wikidata = ifelse(!is.na(wd_item), T, F),
+    has_wikipedia_de = ifelse(!is.na(Sdewiki), T, F),
+    has_gnd = ifelse(!is.na(gnd), T, F)
+  )
+
+
+hierarchy_1 <- current_books_with_author_ids |> 
+  select(ID, Title, author, book_id, forum_id) |>
+  mutate(hierarchy = ifelse(!is.na(forum_id), 1, NA_integer_))
+```
+
+### Counts
+
+```{r}
+get_count <- function(data, col) {
+  data |> 
+    janitor::tabyl(!!col) |> 
+    mutate(percent = scales::percent(percent, accuracy = 0.01)) |> 
+    DT::datatable()
+}
+```
+
+#### Forum ID 
+
+```{r}
+get_count(current_books_with_author_ids, "has_forum_id")
+```
+
+#### Wikidata 
+
+```{r}
+get_count(current_books_with_author_ids, "has_wikidata")
+```
+
+#### Wikipedia Deutsch 
+
+```{r}
+get_count(current_books_with_author_ids, "has_wikipedia_de")
+```
+
+#### GND 
+
+```{r}
+get_count(current_books_with_author_ids, "has_gnd")
+
+```
+#### Factgrid 
+
+```{r}
+get_count(current_books_with_author_ids, "has_fg")
+```
+
+
+### Join: Get 2nd bucket
+
+Wenn bisher kein Match - finden wir trotzdem noch welche mit string matching? 
+
+```{r}
+hierarchy_2 <- current_books_with_author_ids |> 
+  filter(!has_forum_id) |> 
+  select(ID, Title, author, book_id) |>
+  separate_rows(author, sep = ";") |> 
+  mutate(author = trimws(author)) |> 
+  left_join(fg_items |> 
+              mutate(hierarchy = 2), by = join_by(author == fg_itemLabel)) |> 
+  filter(hierarchy == 2)
+  
+# with AltLabel
+hierarchy_3 <- current_books_with_author_ids |> 
+  filter(!has_forum_id) |> 
+  select(ID, Title, author, book_id) |>
+  separate_rows(author, sep = ";") |> 
+  mutate(author = trimws(author)) |> 
+  left_join(fg_items |> 
+              mutate(hierarchy = 3), by = join_by(author == fg_itemAltLabel)) |> 
+  filter(hierarchy == 3)
+  
+```
+
+
+### Bind rows
+
+```{r}
+all_hierarchies <- bind_rows(
+  hierarchy_1,
+  hierarchy_2,
+  hierarchy_3
+) |> 
+  group_by(hierarchy) |> 
+  filter(hierarchy == min(hierarchy)) |> 
+  ungroup() 
+
+
+# all books
+no_authors <- current_books_with_author_ids |> 
+  anti_join(all_hierarchies, by = join_by(ID)) |> 
+  separate_rows(author, sep = ";") |> 
+  mutate(author = trimws(author)) |> 
+  filter(!author %in% c("et al.", "?"))
+  
+no_authors |> count(author, sort = T) |> clipr::write_clip()
+```
+

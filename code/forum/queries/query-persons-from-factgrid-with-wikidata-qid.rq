@@ -1,0 +1,43 @@
+# https://database.factgrid.de/query/#%0A%23%20Prefix%20standard%20%0A%23%20Factgrid%0APREFIX%20fg%3A%20%3Chttps%3A%2F%2Fdatabase.factgrid.de%2Fentity%2F%3E%0APREFIX%20fgt%3A%20%3Chttps%3A%2F%2Fdatabase.factgrid.de%2Fprop%2Fdirect%2F%3E%0A%23%20DBpedia%0APREFIX%20dbo%3A%20%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%20%0APREFIX%20dbr%3A%20%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%20%0A%23%20Wikidata%0APREFIX%20wdt%3A%20%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fdirect%2F%3E%0APREFIX%20wd%3A%20%3Chttp%3A%2F%2Fwww.wikidata.org%2Fentity%2F%3E%0APREFIX%20wdp%3A%20%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2F%3E%0APREFIX%20wps%3A%20%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fstatement%2F%3E%0APREFIX%20wdpsv%3A%20%3Chttp%3A%2F%2Fwww.wikidata.org%2Fprop%2Fstatement%2Fvalue%2F%3E%0A%23%20misc%0APREFIX%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0APREFIX%20dct%3A%20%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0APREFIX%20wikibase%3A%20%3Chttp%3A%2F%2Fwikiba.se%2Fontology%23%3E%0APREFIX%20bd%3A%20%3Chttp%3A%2F%2Fwww.bigdata.com%2Frdf%23%3E%0APREFIX%20schema%3A%20%3Chttp%3A%2F%2Fschema.org%2F%3E%0Aprefix%20foaf%3A%20%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%20%0APREFIX%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0A%0ASELECT%20%3Ffg_item%20%3Ffg_itemLabel%20%3Ffg_instance%20%3Ffg_instanceLabel%20%3Ffg_itemAltLabel%20%3Ffg_itemDescription%20%3Fwd_item%20%3FSdewiki%20%3Fgnd%20%3Fforum_id%20WHERE%20%7B%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%20%20%3Ffg_item%20fgt%3AP131%20fg%3AQ400012.%0A%20%20%3Ffg_item%20fgt%3AP2%20%3Ffg_instance.%0A%20%20OPTIONAL%20%7B%20%3Ffg_item%20fgt%3AP76%20%3Fgnd.%20%7D%0A%20%20%3Ffg_item%20fgt%3AP728%20%3Fforum_id.%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%3Flink%20schema%3Aabout%20%3Ffg_item%3B%0A%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fwww.wikidata.org%2F%3E%3B%0A%20%20%20%20%20%20schema%3Aname%20%3Fqid.%0A%20%20%20%20BIND%28IRI%28CONCAT%28STR%28%3Chttp%3A%2F%2Fwww.wikidata.org%2Fentity%2F%3E%29%2C%20%3Fqid%29%29%20AS%20%3Fwd_item%29%0A%20%20%7D%0A%20%20OPTIONAL%20%7B%0A%20%20%20%20%3Flink_de%20schema%3Aabout%20%3Ffg_item%3B%0A%20%20%20%20%20%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fde.wikipedia.org%2F%3E%3B%0A%20%20%20%20%20%20schema%3Aname%20%3FSdewiki.%0A%20%20%7D%0A%7D%0A
+
+
+# Prefix standard 
+# Factgrid
+PREFIX fg: <https://database.factgrid.de/entity/>
+PREFIX fgt: <https://database.factgrid.de/prop/direct/>
+# DBpedia
+PREFIX dbo: <http://dbpedia.org/ontology/> 
+PREFIX dbr: <http://dbpedia.org/resource/> 
+# Wikidata
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdp: <http://www.wikidata.org/prop/>
+PREFIX wps: <http://www.wikidata.org/prop/statement/>
+PREFIX wdpsv: <http://www.wikidata.org/prop/statement/value/>
+# misc
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+prefix foaf:  <http://xmlns.com/foaf/0.1/> 
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?fg_item ?fg_itemLabel ?fg_instance ?fg_instanceLabel ?fg_itemAltLabel ?fg_itemDescription ?wd_item ?Sdewiki ?gnd ?forum_id WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  ?fg_item fgt:P131 fg:Q400012.
+  ?fg_item fgt:P2 ?fg_instance.
+  OPTIONAL { ?fg_item fgt:P76 ?gnd. }
+  ?fg_item fgt:P728 ?forum_id.
+  OPTIONAL {
+    ?link schema:about ?fg_item;
+      schema:isPartOf <https://www.wikidata.org/>;
+      schema:name ?qid.
+    BIND(IRI(CONCAT(STR(<http://www.wikidata.org/entity/>), ?qid)) AS ?wd_item)
+  }
+  OPTIONAL {
+    ?link_de schema:about ?fg_item;
+      schema:isPartOf <https://de.wikipedia.org/>;
+      schema:name ?Sdewiki.
+  }
+}
