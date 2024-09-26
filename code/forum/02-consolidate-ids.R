@@ -76,8 +76,8 @@ current_books_with_uuid <- current_books_raw |>
 
 
 current_books_with_uuid_qid <- current_books_with_uuid |> 
-   left_join(fg_items |> 
-               filter(fg_instanceLabel == "Mensch(en)") |> 
+  left_join(fg_items |> 
+              filter(fg_instanceLabel == "Mensch(en)") |> 
               left_join(books_authors, by = join_by(forum_id==id)) |> filter(!is.na(book_id)), 
             by = join_by(book_id))
  
