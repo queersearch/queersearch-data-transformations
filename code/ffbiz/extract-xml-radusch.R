@@ -17,7 +17,7 @@ xml_list <- rrapply::rrapply(
   how = "list"
 )
 
-
+# list to df, bisschen unnötig ineinander verschachtelt
 xml_as_df <- map_df(xml_list , function(x) {
   helper_id <- unlist(x$id)
   tbl <- x |> 
@@ -30,8 +30,9 @@ xml_as_df <- map_df(xml_list , function(x) {
   # mehrere schlagworte o.ä. in einer Zeile zusammenpacken
   reframe(value = glue::glue_collapse(value, sep = ";"), .by = c(helper_id, name)) |> 
   pivot_wider(id_cols = helper_id, names_from = name, values_from = value) |> 
-  mutate(inst = "ffbiz")
+  mutate(inst = THIS_INST)
 
 
+clipr::write_clip(xml_as_df)
 
-
+#TODO: googlesheets connect, datensatz ID 
